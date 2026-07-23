@@ -151,8 +151,10 @@
     <div class="hint">The WhatsApp number powers every listing's green inquiry button.</div>
     <div class="row">
       <div><label>Email</label><input id="c_email" placeholder="rehiman@yahoo.com"></div>
-      <div><label>Office address</label><input id="c_address" placeholder="Office address, Saudi Arabia"></div>
+      <div><label>Office address</label><input id="c_address" placeholder="Tahlia Street, Jeddah"></div>
     </div>
+    <label>LinkedIn profile link (the "View on LinkedIn" button)</label>
+    <input id="c_linkedin_url" placeholder="https://www.linkedin.com/in/...">
     <label>Footer line</label>
     <input id="c_footer" placeholder="© 2026 Abdu Rahiman · AIMS co. — Real Estate & Leasing. All rights reserved.">
 
@@ -316,8 +318,8 @@ const DEFAULT_CONTENT = {
   hero_headline: "Guiding you home —\nwith confidence.",
   hero_subtitle: "Trusted independent real estate guidance for buying, selling, leasing, and investing.",
   badge1: "Local Market Expert · Saudi Arabia",
-  badge2: "Transparent & Personal Service",
-  badge3: "25+ Years in Saudi Arabia",
+  badge2: "25+ Years in Saudi Arabia",
+  badge3: "Transparent & Personal Service",
   about_name: "I'M\nABDU RAHIMAN\nMALIYEKKAL",
   about_role: "REAL ESTATE AGENT",
   bio: "Having spent 25 years in Saudi Arabia, I graduated from the University of Calicut with a major in Economics and Management.\n\nI have a strong passion for building interpersonal relationships and engaging in both local and international business environments. Fluent in Arabic, English, Hindi, and Malayalam, I am comfortable working in diverse multicultural settings.\n\nI possess strong work ethics, quantitative analytical skills, and a keen interest in commercial real estate services. Colleagues and clients describe me as a dynamic, motivated, and open-minded professional with a strong determination to achieve results.\n\nDue to my background, professional objectives, and leasing experience with international firms at prestigious developments such as Jameel Square, Business Gate, and The Grid, sales and marketing have become areas of particular interest and expertise.\n\nI would greatly welcome the opportunity to work with you and your organization, contributing independently while adding value through my experience, skills, and commitment to excellence.",
@@ -332,14 +334,15 @@ const DEFAULT_CONTENT = {
   phone_display: "+966 56 910 6955",
   whatsapp_number: "966569106955",
   email: "rehiman@yahoo.com",
-  address: "Office address, Saudi Arabia",
+  address: "Tahlia Street, Jeddah",
+  linkedin_url: "https://www.linkedin.com/in/abdurahiman-maliyekkal-632a9411",
   footer: "© 2026 Abdu Rahiman · AIMS co. — Real Estate & Leasing. All rights reserved."
 };
 
 const CONTENT_KEYS = ["hero_headline","hero_subtitle","badge1","badge2","badge3",
   "about_name","about_role","bio","service1_title","service1_text","service2_title","service2_text",
   "service3_title","service3_text","contact_heading","contact_text","phone_display",
-  "whatsapp_number","email","address","footer"];
+  "whatsapp_number","email","address","footer","linkedin_url"];
 let contentSha = null;
 
 async function loadContent(){
