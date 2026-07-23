@@ -80,41 +80,30 @@
     <div class="msg" id="setupMsg"></div>
   </div>
 
-  <!-- ADD LISTING -->
+  <!-- ADD PROJECT -->
   <div class="card" id="addCard" style="display:none">
-    <h2>Add a new listing</h2>
-    <label>Property photo</label>
+    <h2>Add a completed project</h2>
+    <label>Project photo</label>
     <input type="file" id="photo" accept="image/*" onchange="previewPhoto()">
     <img class="preview" id="preview" alt="">
-    <div class="row">
-      <div>
-        <label>Type</label>
-        <select id="ltype">
-          <option value="sale">For Sale</option>
-          <option value="lease">For Lease</option>
-        </select>
-      </div>
-      <div>
-        <label>Price</label>
-        <input id="lprice" placeholder="e.g. SAR 2,850,000">
-      </div>
-    </div>
-    <label>Listing title</label>
-    <input id="ltitle" placeholder="e.g. Modern 3BR Apartment">
+    <label>Project name</label>
+    <input id="ltitle" placeholder="e.g. Business Gate">
     <label>Location</label>
-    <input id="lloc" placeholder="e.g. Al Olaya, Riyadh">
+    <input id="lloc" placeholder="e.g. Riyadh · Commercial development">
+    <label>Role / note (optional)</label>
+    <input id="lnote" placeholder="e.g. Leasing & marketing for international firms">
     <label style="display:flex;align-items:center;gap:10px;margin-top:16px;cursor:pointer">
       <input type="checkbox" id="lfeat" style="width:auto;transform:scale(1.3)">
-      <span>⭐ Mark as <b>Featured</b> (gold star badge on the listing)</span>
+      <span>⭐ Mark as <b>Featured</b> (star badge instead of COMPLETED)</span>
     </label>
-    <button class="btn" id="uploadBtn" onclick="uploadListing()">Publish Listing</button>
+    <button class="btn" id="uploadBtn" onclick="uploadListing()">Publish Project</button>
     <div class="msg" id="addMsg"></div>
-    <div class="hint" style="margin-top:12px">After publishing, the listing appears on the website within about a minute, with its own WhatsApp inquiry button.</div>
+    <div class="hint" style="margin-top:12px">After publishing, the project appears in the website's portfolio within about a minute.</div>
   </div>
 
   <!-- CURRENT LISTINGS -->
   <div class="card" id="listCard" style="display:none">
-    <h2>Current listings</h2>
+    <h2>Current projects</h2>
     <div id="listings"><div class="muted">Loading…</div></div>
     <div class="msg" id="listMsg"></div>
   </div>
@@ -233,16 +222,16 @@ function clean(s){ return s.trim().replace(/_/g,"-").replace(/\s+/g,"-"); }
 
 async function uploadListing(){
   const f=document.getElementById("photo").files[0];
-  const type=document.getElementById("ltype").value;
   const title=document.getElementById("ltitle").value;
   const loc=document.getElementById("lloc").value;
-  const price=document.getElementById("lprice").value;
+  const note=document.getElementById("lnote").value;
   if(!f){ show("addMsg","err","Please choose a photo."); return; }
-  if(!title.trim()||!loc.trim()||!price.trim()){ show("addMsg","err","Please fill in title, location and price."); return; }
+  if(!title.trim()||!loc.trim()){ show("addMsg","err","Please fill in the project name and location."); return; }
 
   const ext=(f.name.match(/\.(jpe?g|png|webp)$/i)||[".jpg"])[0];
   const feat=document.getElementById("lfeat").checked ? "_featured" : "";
-  const filename=`${type}_${clean(title)}_${clean(loc)}_${clean(price)}${feat}${ext.toLowerCase()}`;
+  const notePart = note.trim() ? `_${clean(note)}` : "";
+  const filename=`${clean(title)}_${clean(loc)}${notePart}${feat}${ext.toLowerCase()}`;
 
   const btn=document.getElementById("uploadBtn");
   btn.disabled=true; btn.textContent="Publishing…";
@@ -255,16 +244,16 @@ async function uploadListing(){
     });
     const resp = await fetch(api(`${FOLDER}/${encodeURIComponent(filename)}`),{
       method:"PUT", headers:headers(),
-      body:JSON.stringify({message:`Add listing: ${title}`, content:b64})
+      body:JSON.stringify({message:`Add project: ${title}`, content:b64})
     });
     if(!resp.ok){
       const d=await resp.json().catch(()=>({}));
       throw new Error(d.message||`Upload failed (${resp.status})`);
     }
-    show("addMsg","ok","Published! The listing will appear on the website in about a minute.");
+    show("addMsg","ok","Published! The project will appear on the website in about a minute.");
     document.getElementById("photo").value="";
     document.getElementById("preview").style.display="none";
-    document.getElementById("ltitle").value=""; document.getElementById("lloc").value=""; document.getElementById("lprice").value=""; document.getElementById("lfeat").checked=false;
+    document.getElementById("ltitle").value=""; document.getElementById("lloc").value=""; document.getElementById("lnote").value=""; document.getElementById("lfeat").checked=false;
     loadListings();
   }catch(e){
     show("addMsg","err","Problem: "+e.message+". Check the setup key or internet connection.");
@@ -279,17 +268,20 @@ async function loadListings(){
     const resp=await fetch(api(FOLDER),{headers:headers()});
     if(!resp.ok) throw new Error("Could not load");
     const files=(await resp.json()).filter(f=>/\.(jpe?g|png|webp)$/i.test(f.name));
-    if(files.length===0){ box.innerHTML='<div class="muted">No listings yet — add the first one above.</div>'; return; }
+    if(files.length===0){ box.innerHTML='<div class="muted">No projects yet — add the first one above.</div>'; return; }
     box.innerHTML="";
     files.forEach(f=>{
       const base=f.name.replace(/\.(jpe?g|png|webp)$/i,"");
       const p=base.split("_");
       const isFeat=p.map(x=>x.toLowerCase()).includes("featured");
-      const pc=p.filter(x=>x.toLowerCase()!=="featured");
-      const status=((pc[0]||"").toLowerCase()==="lease"?"FOR LEASE":"FOR SALE") + (isFeat?" · ⭐ FEATURED":"");
-      const title=(pc[1]||"Property").replace(/-/g," ");
-      const loc=(pc[2]||"").replace(/-/g," ");
-      const price=(pc[3]||"").replace(/-/g," ");
+      const pc=p.filter(x=>{
+        const t=x.toLowerCase();
+        return t!=="featured" && t!=="sale" && t!=="lease" && !/^(sar|qar|usd|aed)-/i.test(x);
+      });
+      const status=(isFeat?"⭐ FEATURED":"COMPLETED");
+      const title=(pc[0]||"Project").replace(/-/g," ");
+      const loc=(pc[1]||"").replace(/-/g," ");
+      const price=(pc[2]||"").replace(/-/g," ");
       const row=document.createElement("div");
       row.className="listing";
       row.innerHTML=`<img src="${f.download_url}" alt="">
@@ -308,7 +300,7 @@ async function removeListing(f, title, row){
   try{
     const resp=await fetch(api(`${FOLDER}/${encodeURIComponent(f.name)}`),{
       method:"DELETE", headers:headers(),
-      body:JSON.stringify({message:`Remove listing: ${title}`, sha:f.sha})
+      body:JSON.stringify({message:`Remove project: ${title}`, sha:f.sha})
     });
     if(!resp.ok) throw new Error("Delete failed");
     row.remove();
