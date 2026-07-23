@@ -122,7 +122,7 @@
   <!-- EDIT WEBSITE TEXT -->
   <div class="card" id="contentCard" style="display:none">
     <h2>Edit website — words &amp; contact details</h2>
-    <div class="hint" style="margin-bottom:4px">Change anything below and press Save. Empty boxes keep the current website text. Updates appear in about a minute.</div>
+    <div class="hint" style="margin-bottom:4px">These boxes show the website's current text. Edit anything and press Save — updates appear on the site in about a minute.</div>
 
     <label>Main headline (top of site)</label>
     <input id="c_hero_headline" placeholder="Guiding you home — with confidence.">
@@ -318,6 +318,32 @@ async function removeListing(f, title, row){
   }
 }
 
+/* The website's built-in text — shown in the editor so the current
+   content is always visible and editable. Saved changes override these. */
+const DEFAULT_CONTENT = {
+  hero_headline: "Guiding you home —\nwith confidence.",
+  hero_subtitle: "Trusted independent real estate guidance for buying, selling, leasing, and investing.",
+  badge1: "Local Market Expert · Saudi Arabia",
+  badge2: "Transparent & Personal Service",
+  badge3: "25+ Years in Saudi Arabia",
+  about_name: "I'M\nABDU RAHIMAN\nMALIYEKKAL",
+  about_role: "REAL ESTATE AGENT",
+  bio: "Having spent 25 years in Saudi Arabia, I graduated from the University of Calicut with a major in Economics and Management.\n\nI have a strong passion for building interpersonal relationships and engaging in both local and international business environments. Fluent in Arabic, English, Hindi, and Malayalam, I am comfortable working in diverse multicultural settings.\n\nI possess strong work ethics, quantitative analytical skills, and a keen interest in commercial real estate services. Colleagues and clients describe me as a dynamic, motivated, and open-minded professional with a strong determination to achieve results.\n\nDue to my background, professional objectives, and leasing experience with international firms at prestigious developments such as Jameel Square, Business Gate, and The Grid, sales and marketing have become areas of particular interest and expertise.\n\nI would greatly welcome the opportunity to work with you and your organization, contributing independently while adding value through my experience, skills, and commitment to excellence.",
+  service1_title: "Buying & Selling",
+  service1_text: "End-to-end support for residential and commercial property sales — accurate valuation, marketing, negotiation, and a smooth handover.",
+  service2_title: "Leasing",
+  service2_text: "Finding the right tenants and the right homes. Full leasing service for landlords and tenants, from viewings to contracts.",
+  service3_title: "Investment Advisory",
+  service3_text: "Guidance on high-potential opportunities, rental yields, and long-term value — so your property works as hard as you do.",
+  contact_heading: "Let's find your\nnext property.",
+  contact_text: "Reach out for a free, no-pressure consultation — whether you're buying, selling, leasing, or investing.",
+  phone_display: "+966 56 910 6955",
+  whatsapp_number: "966569106955",
+  email: "rehiman@yahoo.com",
+  address: "Office address, Saudi Arabia",
+  footer: "© 2026 Abdu Rahiman · AIMS co. — Real Estate & Leasing. All rights reserved."
+};
+
 const CONTENT_KEYS = ["hero_headline","hero_subtitle","badge1","badge2","badge3",
   "about_name","about_role","bio","service1_title","service1_text","service2_title","service2_text",
   "service3_title","service3_text","contact_heading","contact_text","phone_display",
@@ -325,9 +351,15 @@ const CONTENT_KEYS = ["hero_headline","hero_subtitle","badge1","badge2","badge3"
 let contentSha = null;
 
 async function loadContent(){
+  // show the current website text in every box
+  CONTENT_KEYS.forEach(k=>{
+    const el = document.getElementById("c_"+k);
+    if(el && DEFAULT_CONTENT[k]) el.value = DEFAULT_CONTENT[k];
+  });
+  // then overlay any saved edits
   try{
     const resp = await fetch(api("content.json"), {headers:headers()});
-    if(!resp.ok) return; // no content.json yet — fine
+    if(!resp.ok) return; // no saved edits yet — defaults stay
     const data = await resp.json();
     contentSha = data.sha;
     const json = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
@@ -345,7 +377,8 @@ async function saveContent(){
     const json={};
     CONTENT_KEYS.forEach(k=>{
       const v=document.getElementById("c_"+k).value.trim();
-      if(v) json[k]=v;
+      if(v && v !== DEFAULT_CONTENT[k]) json[k]=v;
+      else if(v) json[k]=v; // keep filled values so the site always matches the editor
     });
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(json,null,2))));
     const body = {message:"Update website content", content:b64};
