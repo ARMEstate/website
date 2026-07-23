@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARM Admin — Manage Listings</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mist:#E4EAEE; --ink:#141F2A; --steel:#8FA0AC; --white:#fff;
+    --gold:#B08A24; --green:#1F9D55; --red:#C0392B; --radius:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Instrument Sans',system-ui,sans-serif;background:var(--mist);color:var(--ink);min-height:100vh;padding:30px 16px}
+  .shell{max-width:640px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:26px}
+  .brand .arm{font-family:'Playfair Display',serif;font-weight:600;font-size:30px;letter-spacing:5px}
+  .brand .sub{font-size:10px;letter-spacing:.24em;color:var(--gold);font-weight:600}
+  .card{background:#fff;border-radius:22px;padding:28px;box-shadow:0 6px 26px rgba(20,31,42,.08);margin-bottom:20px}
+  h2{font-family:'Archivo';font-size:17px;margin-bottom:16px}
+  label{display:block;font-size:12.5px;font-weight:600;color:#3d4b57;margin:14px 0 6px}
+  textarea{width:100%;padding:12px 14px;border:1.5px solid #d5dde2;border-radius:12px;font-size:14.5px;font-family:inherit;background:#fbfcfd;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--ink)}
+  input,select{
+    width:100%;padding:12px 14px;border:1.5px solid #d5dde2;border-radius:12px;
+    font-size:14.5px;font-family:inherit;background:#fbfcfd;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--ink)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:var(--ink);color:#fff;border:none;border-radius:999px;cursor:pointer;
+    padding:14px 20px;font-size:14.5px;font-weight:600;font-family:inherit;margin-top:20px;
+    transition:background .15s ease;
+  }
+  .btn:hover{background:#263542}
+  .btn:disabled{background:#9aa7b1;cursor:not-allowed}
+  .btn.small{width:auto;padding:8px 14px;font-size:12px;margin:0}
+  .btn.danger{background:var(--red)}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:13.5px;display:none}
+  .msg.ok{background:#E7F6EC;color:#166534;display:block}
+  .msg.err{background:#FDECEA;color:#8f2318;display:block}
+  .hint{font-size:12px;color:#67757f;margin-top:6px;line-height:1.5}
+  .preview{margin-top:12px;border-radius:12px;max-height:220px;object-fit:cover;width:100%;display:none}
+  .listing{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #eef2f4}
+  .listing img{width:64px;height:48px;object-fit:cover;border-radius:8px}
+  .listing .t{flex:1;font-size:13px;line-height:1.4}
+  .listing .t b{display:block;font-size:13.5px}
+  .muted{color:var(--steel);font-size:12.5px}
+  .setup-note{background:#FFF8E6;border:1px solid #F0DFA8;border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.6;margin-bottom:6px}
+  a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="brand"><span class="arm">ARM</span><span class="sub">ADMIN — LISTINGS</span></div>
+
+  <!-- ONE-TIME SETUP -->
+  <div class="card" id="setupCard">
+    <h2>One-time setup</h2>
+    <div class="setup-note">
+      This connects the admin to your website's storage. You only do this once
+      per device — after saving, this page goes straight to the upload form.
+    </div>
+    <label>GitHub username</label>
+    <input id="ghUser" placeholder="e.g. armrealestate">
+    <label>Repository name</label>
+    <input id="ghRepo" value="website">
+    <label>Access key (fine-grained token)</label>
+    <input id="ghToken" type="password" placeholder="github_pat_...">
+    <div class="hint">
+      How to get the key: GitHub → click your photo → <b>Settings</b> →
+      <b>Developer settings</b> → <b>Personal access tokens → Fine-grained tokens</b> →
+      <b>Generate new token</b>. Name it "ARM admin", set expiry to 1 year,
+      under "Repository access" pick <b>Only select repositories → website</b>,
+      and under Permissions set <b>Contents → Read and write</b>. Generate, copy,
+      paste here. (The key stays only in this device's browser.)
+    </div>
+    <button class="btn" onclick="saveSetup()">Save & Start</button>
+    <div class="msg" id="setupMsg"></div>
+  </div>
+
+  <!-- ADD LISTING -->
+  <div class="card" id="addCard" style="display:none">
+    <h2>Add a new listing</h2>
+    <label>Property photo</label>
+    <input type="file" id="photo" accept="image/*" onchange="previewPhoto()">
+    <img class="preview" id="preview" alt="">
+    <div class="row">
+      <div>
+        <label>Type</label>
+        <select id="ltype">
+          <option value="sale">For Sale</option>
+          <option value="lease">For Lease</option>
+        </select>
+      </div>
+      <div>
+        <label>Price</label>
+        <input id="lprice" placeholder="e.g. SAR 2,850,000">
+      </div>
+    </div>
+    <label>Listing title</label>
+    <input id="ltitle" placeholder="e.g. Modern 3BR Apartment">
+    <label>Location</label>
+    <input id="lloc" placeholder="e.g. Al Olaya, Riyadh">
+    <label style="display:flex;align-items:center;gap:10px;margin-top:16px;cursor:pointer">
+      <input type="checkbox" id="lfeat" style="width:auto;transform:scale(1.3)">
+      <span>⭐ Mark as <b>Featured</b> (gold star badge on the listing)</span>
+    </label>
+    <button class="btn" id="uploadBtn" onclick="uploadListing()">Publish Listing</button>
+    <div class="msg" id="addMsg"></div>
+    <div class="hint" style="margin-top:12px">After publishing, the listing appears on the website within about a minute, with its own WhatsApp inquiry button.</div>
+  </div>
+
+  <!-- CURRENT LISTINGS -->
+  <div class="card" id="listCard" style="display:none">
+    <h2>Current listings</h2>
+    <div id="listings"><div class="muted">Loading…</div></div>
+    <div class="msg" id="listMsg"></div>
+  </div>
+
+  <!-- EDIT WEBSITE TEXT -->
+  <div class="card" id="contentCard" style="display:none">
+    <h2>Edit website — words &amp; contact details</h2>
+    <div class="hint" style="margin-bottom:4px">Change anything below and press Save. Empty boxes keep the current website text. Updates appear in about a minute.</div>
+
+    <label>Main headline (top of site)</label>
+    <input id="c_hero_headline" placeholder="Guiding you home — with confidence.">
+    <label>Line under the headline</label>
+    <input id="c_hero_subtitle" placeholder="Trusted independent real estate guidance for buying, selling, leasing, and investing.">
+    <div class="row">
+      <div><label>Badge 1</label><input id="c_badge1" placeholder="Local Market Expert · Saudi Arabia"></div>
+      <div><label>Badge 2</label><input id="c_badge2" placeholder="Transparent & Personal Service"></div>
+    </div>
+    <label>Badge 3</label>
+    <input id="c_badge3" placeholder="25+ Years in Saudi Arabia">
+
+    <label>Name heading (About section — use new lines for line breaks)</label>
+    <textarea id="c_about_name" rows="3" placeholder="I'M&#10;ABDU RAHIMAN&#10;MALIYEKKAL"></textarea>
+    <label>Role label</label>
+    <input id="c_about_role" placeholder="REAL ESTATE AGENT">
+    <label>Profile / bio (leave an empty line between paragraphs)</label>
+    <textarea id="c_bio" rows="7" placeholder="Having spent 25 years in Saudi Arabia..."></textarea>
+
+    <div class="row">
+      <div><label>Service 1 title</label><input id="c_service1_title" placeholder="Buying & Selling"></div>
+      <div><label>Service 2 title</label><input id="c_service2_title" placeholder="Leasing"></div>
+    </div>
+    <label>Service 1 description</label><input id="c_service1_text" placeholder="End-to-end support...">
+    <label>Service 2 description</label><input id="c_service2_text" placeholder="Finding the right tenants...">
+    <label>Service 3 title</label><input id="c_service3_title" placeholder="Investment Advisory">
+    <label>Service 3 description</label><input id="c_service3_text" placeholder="Guidance on high-potential opportunities...">
+
+    <label>Contact heading (use new lines for line breaks)</label>
+    <textarea id="c_contact_heading" rows="2" placeholder="Let's find your&#10;next property."></textarea>
+    <label>Contact text</label>
+    <input id="c_contact_text" placeholder="Reach out for a free, no-pressure consultation...">
+    <div class="row">
+      <div><label>Phone (as shown)</label><input id="c_phone_display" placeholder="+966 56 910 6955"></div>
+      <div><label>WhatsApp number (digits with country code)</label><input id="c_whatsapp_number" placeholder="966569106955"></div>
+    </div>
+    <div class="hint">The WhatsApp number powers every listing's green inquiry button.</div>
+    <div class="row">
+      <div><label>Email</label><input id="c_email" placeholder="rehiman@yahoo.com"></div>
+      <div><label>Office address</label><input id="c_address" placeholder="Office address, Saudi Arabia"></div>
+    </div>
+    <label>Footer line</label>
+    <input id="c_footer" placeholder="© 2026 Abdu Rahiman · AIMS co. — Real Estate & Leasing. All rights reserved.">
+
+    <button class="btn" id="saveContentBtn" onclick="saveContent()">Save Website Changes</button>
+    <div class="msg" id="contentMsg"></div>
+  </div>
+
+  <!-- LOGO & PHOTOS -->
+  <div class="card" id="photosCard" style="display:none">
+    <h2>Logo &amp; photos</h2>
+    <label>Company logo (replaces the ARM text logo in the menu)</label>
+    <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp">
+    <button class="btn" onclick="uploadSiteImage('logoFile','images/logo.png','Logo')">Upload Logo</button>
+    <div class="hint">To go back to the ARM text logo: on github.com open the <b>images</b> folder, open <b>logo.png</b>, click the trash icon, Commit.</div>
+    <label style="margin-top:22px">Cover photo (the large photo in the About section)</label>
+    <input type="file" id="coverFile" accept="image/jpeg,image/png,image/webp">
+    <button class="btn" onclick="uploadSiteImage('coverFile','images/cover.jpg','Cover photo')">Upload Cover Photo</button>
+    <div class="msg" id="photosMsg"></div>
+  </div>
+
+  <div style="text-align:center" id="footerLinks"></div>
+</div>
+
+<script>
+const LS = {u:"arm_gh_user", r:"arm_gh_repo", t:"arm_gh_token"};
+const FOLDER = "properties";
+const state = {user:localStorage.getItem(LS.u)||"", repo:localStorage.getItem(LS.r)||"", token:localStorage.getItem(LS.t)||""};
+
+function api(path){ return `https://api.github.com/repos/${state.user}/${state.repo}/contents/${path}`; }
+function headers(){ return {Authorization:`Bearer ${state.token}`, Accept:"application/vnd.github+json"}; }
+function show(id,cls,text){ const el=document.getElementById(id); el.className="msg "+cls; el.textContent=text; }
+
+function init(){
+  if(state.user && state.repo && state.token){
+    document.getElementById("setupCard").style.display="none";
+    document.getElementById("addCard").style.display="block";
+    document.getElementById("listCard").style.display="block";
+    document.getElementById("contentCard").style.display="block";
+    document.getElementById("photosCard").style.display="block";
+    loadContent();
+    document.getElementById("footerLinks").innerHTML =
+      `<a href="https://${state.user}.github.io/${state.repo}/" target="_blank">View website ↗</a>
+       &nbsp;·&nbsp; <a href="#" onclick="resetSetup();return false">Change setup</a>`;
+    loadListings();
+  }
+}
+function saveSetup(){
+  const u=document.getElementById("ghUser").value.trim();
+  const r=document.getElementById("ghRepo").value.trim();
+  const t=document.getElementById("ghToken").value.trim();
+  if(!u||!r||!t){ show("setupMsg","err","Please fill all three boxes."); return; }
+  localStorage.setItem(LS.u,u); localStorage.setItem(LS.r,r); localStorage.setItem(LS.t,t);
+  state.user=u; state.repo=r; state.token=t;
+  init();
+}
+function resetSetup(){
+  Object.values(LS).forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+function previewPhoto(){
+  const f=document.getElementById("photo").files[0];
+  if(!f) return;
+  const img=document.getElementById("preview");
+  img.src=URL.createObjectURL(f); img.style.display="block";
+}
+function clean(s){ return s.trim().replace(/_/g,"-").replace(/\s+/g,"-"); }
+
+async function uploadListing(){
+  const f=document.getElementById("photo").files[0];
+  const type=document.getElementById("ltype").value;
+  const title=document.getElementById("ltitle").value;
+  const loc=document.getElementById("lloc").value;
+  const price=document.getElementById("lprice").value;
+  if(!f){ show("addMsg","err","Please choose a photo."); return; }
+  if(!title.trim()||!loc.trim()||!price.trim()){ show("addMsg","err","Please fill in title, location and price."); return; }
+
+  const ext=(f.name.match(/\.(jpe?g|png|webp)$/i)||[".jpg"])[0];
+  const feat=document.getElementById("lfeat").checked ? "_featured" : "";
+  const filename=`${type}_${clean(title)}_${clean(loc)}_${clean(price)}${feat}${ext.toLowerCase()}`;
+
+  const btn=document.getElementById("uploadBtn");
+  btn.disabled=true; btn.textContent="Publishing…";
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const rd=new FileReader();
+      rd.onload=()=>res(rd.result.split(",")[1]);
+      rd.onerror=()=>rej(new Error("Could not read the photo"));
+      rd.readAsDataURL(f);
+    });
+    const resp = await fetch(api(`${FOLDER}/${encodeURIComponent(filename)}`),{
+      method:"PUT", headers:headers(),
+      body:JSON.stringify({message:`Add listing: ${title}`, content:b64})
+    });
+    if(!resp.ok){
+      const d=await resp.json().catch(()=>({}));
+      throw new Error(d.message||`Upload failed (${resp.status})`);
+    }
+    show("addMsg","ok","Published! The listing will appear on the website in about a minute.");
+    document.getElementById("photo").value="";
+    document.getElementById("preview").style.display="none";
+    document.getElementById("ltitle").value=""; document.getElementById("lloc").value=""; document.getElementById("lprice").value=""; document.getElementById("lfeat").checked=false;
+    loadListings();
+  }catch(e){
+    show("addMsg","err","Problem: "+e.message+". Check the setup key or internet connection.");
+  }finally{
+    btn.disabled=false; btn.textContent="Publish Listing";
+  }
+}
+
+async function loadListings(){
+  const box=document.getElementById("listings");
+  try{
+    const resp=await fetch(api(FOLDER),{headers:headers()});
+    if(!resp.ok) throw new Error("Could not load");
+    const files=(await resp.json()).filter(f=>/\.(jpe?g|png|webp)$/i.test(f.name));
+    if(files.length===0){ box.innerHTML='<div class="muted">No listings yet — add the first one above.</div>'; return; }
+    box.innerHTML="";
+    files.forEach(f=>{
+      const base=f.name.replace(/\.(jpe?g|png|webp)$/i,"");
+      const p=base.split("_");
+      const isFeat=p.map(x=>x.toLowerCase()).includes("featured");
+      const pc=p.filter(x=>x.toLowerCase()!=="featured");
+      const status=((pc[0]||"").toLowerCase()==="lease"?"FOR LEASE":"FOR SALE") + (isFeat?" · ⭐ FEATURED":"");
+      const title=(pc[1]||"Property").replace(/-/g," ");
+      const loc=(pc[2]||"").replace(/-/g," ");
+      const price=(pc[3]||"").replace(/-/g," ");
+      const row=document.createElement("div");
+      row.className="listing";
+      row.innerHTML=`<img src="${f.download_url}" alt="">
+        <div class="t"><b>${title}</b><span class="muted">${status} · ${loc} · ${price}</span></div>
+        <button class="btn small danger">Remove</button>`;
+      row.querySelector("button").onclick=()=>removeListing(f, title, row);
+      box.appendChild(row);
+    });
+  }catch(e){
+    box.innerHTML='<div class="muted">Could not load listings — check the setup key.</div>';
+  }
+}
+
+async function removeListing(f, title, row){
+  if(!confirm(`Remove "${title}" from the website?`)) return;
+  try{
+    const resp=await fetch(api(`${FOLDER}/${encodeURIComponent(f.name)}`),{
+      method:"DELETE", headers:headers(),
+      body:JSON.stringify({message:`Remove listing: ${title}`, sha:f.sha})
+    });
+    if(!resp.ok) throw new Error("Delete failed");
+    row.remove();
+    show("listMsg","ok",`Removed "${title}". It will disappear from the website in about a minute.`);
+  }catch(e){
+    show("listMsg","err","Could not remove it — try again or check the setup key.");
+  }
+}
+
+const CONTENT_KEYS = ["hero_headline","hero_subtitle","badge1","badge2","badge3",
+  "about_name","about_role","bio","service1_title","service1_text","service2_title","service2_text",
+  "service3_title","service3_text","contact_heading","contact_text","phone_display",
+  "whatsapp_number","email","address","footer"];
+let contentSha = null;
+
+async function loadContent(){
+  try{
+    const resp = await fetch(api("content.json"), {headers:headers()});
+    if(!resp.ok) return; // no content.json yet — fine
+    const data = await resp.json();
+    contentSha = data.sha;
+    const json = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
+    CONTENT_KEYS.forEach(k=>{
+      const el = document.getElementById("c_"+k);
+      if(el && json[k]) el.value = json[k];
+    });
+  }catch(e){ /* first time — no saved content yet */ }
+}
+
+async function saveContent(){
+  const btn=document.getElementById("saveContentBtn");
+  btn.disabled=true; btn.textContent="Saving…";
+  try{
+    const json={};
+    CONTENT_KEYS.forEach(k=>{
+      const v=document.getElementById("c_"+k).value.trim();
+      if(v) json[k]=v;
+    });
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(json,null,2))));
+    const body = {message:"Update website content", content:b64};
+    if(contentSha) body.sha = contentSha;
+    const resp = await fetch(api("content.json"),{method:"PUT",headers:headers(),body:JSON.stringify(body)});
+    if(!resp.ok){ const d=await resp.json().catch(()=>({})); throw new Error(d.message||resp.status); }
+    const out = await resp.json();
+    contentSha = out.content.sha;
+    show("contentMsg","ok","Saved! The website updates in about a minute.");
+  }catch(e){
+    show("contentMsg","err","Could not save: "+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent="Save Website Changes";
+  }
+}
+
+async function uploadSiteImage(inputId, path, label){
+  const f=document.getElementById(inputId).files[0];
+  if(!f){ show("photosMsg","err","Choose a file for the "+label.toLowerCase()+" first."); return; }
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const rd=new FileReader();
+      rd.onload=()=>res(rd.result.split(",")[1]);
+      rd.onerror=()=>rej(new Error("Could not read the file"));
+      rd.readAsDataURL(f);
+    });
+    // if the file already exists we need its sha to replace it
+    let sha=null;
+    const check = await fetch(api(path),{headers:headers()});
+    if(check.ok){ sha=(await check.json()).sha; }
+    const body={message:"Update "+label.toLowerCase(), content:b64};
+    if(sha) body.sha=sha;
+    const resp = await fetch(api(path),{method:"PUT",headers:headers(),body:JSON.stringify(body)});
+    if(!resp.ok){ const d=await resp.json().catch(()=>({})); throw new Error(d.message||resp.status); }
+    show("photosMsg","ok",label+" uploaded! It appears on the website in about a minute.");
+    document.getElementById(inputId).value="";
+  }catch(e){
+    show("photosMsg","err","Could not upload "+label.toLowerCase()+": "+e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
