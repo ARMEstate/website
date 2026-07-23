@@ -291,9 +291,15 @@
     .prop .ph{height:210px}
     .prop .info{padding:18px 20px 22px}
     .prop .info h4{font-size:17px}
-    .quote{padding:22px 20px;font-size:13.5px;height:290px}
+    .quote{padding:22px 20px;font-size:13.5px;height:280px;scroll-snap-align:center}
     .q-text{-webkit-line-clamp:9}
-    .quote-track{gap:14px;animation-duration:95s}
+    .quote-marquee{
+      overflow-x:auto;mask-image:none;-webkit-mask-image:none;
+      scroll-snap-type:x mandatory;padding:6px 18px 10px;
+      scrollbar-width:none;
+    }
+    .quote-marquee::-webkit-scrollbar{display:none}
+    .quote-track{gap:14px;animation:none;width:max-content}
     .tst-head{margin-bottom:24px}
     .contact-card{padding:36px 24px;border-radius:26px;gap:26px}
     .contact-list a{padding:13px 16px;font-size:13.5px}
@@ -442,12 +448,12 @@
     <div class="quote-track">
       <div class="quote">
         <div class="q-mark">“</div>
-<div class="q-text">Abdu Rahman Maliyekkal has been working with Hadia Abdul Latif Jameel Co. in the Marketing &amp; Leasing department since 2006, dealing with two of our dynamic projects, Solo Residence &amp; Jameel Square. He has been found to be consistently result oriented, pleasant and willing to tackle assignments with dedication. He can be relied upon to take charge of any project and present creative ideas and strategies. He has successfully developed marketing plans for HALJ Co. resulting in increased sales.</div>
+<div class="q-text">Abdu Rahman Maliyekkal has been working with Hadia Abdul Latif Jameel Co. in the Marketing &amp; Leasing department since 2006, dealing with two of our dynamic projects, Solo Residence &amp; Jameel Square. He has been found to be consistently result oriented, pleasant and willing to tackle assignments with dedication.</div>
         <div class="who">Osama AlHaddad <span>President</span></div>
       </div>
       <div class="quote">
         <div class="q-mark">“</div>
-<div class="q-text">I have worked with Abdul Rahman for the last three and a half years as his direct manager. In this period I was satisfied about the activities and energy he put together to achieve the objectives assigned to him. His greatest assets are in the field of sales — engaging new leads, market intelligence and market communications — yet he is helpful in other fields as well, such as properties management operations and tenants relationship management.</div>
+<div class="q-text">I have worked with Abdul Rahman for the last three and a half years as his direct manager. In this period I was satisfied about the activities and energy he put together to achieve the objectives assigned to him. His greatest assets are in the field of sales — engaging new leads, market intelligence and market communications.</div>
         <div class="who">Alaa Hatahet <span>Realtor</span></div>
       </div>
       <div class="quote">
@@ -577,7 +583,8 @@ function applyCustomImages(){
 }
 
 applyContent().then(()=>{
-  document.querySelectorAll(".marquee-track, .quote-track").forEach(t=>{
+  const small = window.matchMedia("(max-width:600px)").matches;
+  document.querySelectorAll(small ? ".marquee-track" : ".marquee-track, .quote-track").forEach(t=>{
     if(t.children.length) t.innerHTML += t.innerHTML; // duplicate content for a seamless loop
   });
 });
